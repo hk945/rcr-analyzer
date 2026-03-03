@@ -569,7 +569,8 @@ st.markdown("""
 
 st.markdown('<div class="main-header">Researcher RCR Analyzer</div>', unsafe_allow_html=True)
 st.markdown('<div class="sub-header">Enter researcher names to retrieve their first &amp; last author publications and NIH Relative Citation Ratios.</div>', unsafe_allow_html=True)
-st.markdown('<p style="font-family: DM Sans, sans-serif; font-size: 0.88rem; color: #9ca3af; margin-top: -1.2rem; margin-bottom: 2rem; line-height: 1.5;">This site will produce a summary with each researcher&rsquo;s total number of first- and last-author publications, the sum of their RCRs, their mean RCR, and their annual sum of RCRs. It will also provide individual files listing papers and metrics for each researcher.</p>', unsafe_allow_html=True)
+st.markdown('<p style="font-family: DM Sans, sans-serif; font-size: 0.88rem; color: #9ca3af; margin-top: -1.2rem; margin-bottom: 0.3rem; line-height: 1.5;">This site will produce a summary with each researcher&rsquo;s total number of first- and last-author publications, the sum of their RCRs, their mean RCR, and their annual sum of RCRs.</p>', unsafe_allow_html=True)
+st.markdown('<p style="font-family: DM Sans, sans-serif; font-size: 0.88rem; color: #9ca3af; margin-top: 0; margin-bottom: 2rem; line-height: 1.5;">It will also provide individual files listing papers and metrics for each researcher.</p>', unsafe_allow_html=True)
 
 with st.sidebar:
     st.markdown('<div class="section-label">NCBI Credentials</div>', unsafe_allow_html=True)
@@ -629,12 +630,17 @@ with tab_manual:
 
 with tab_upload:
     st.markdown('<div class="section-label">UPLOAD EXCEL FILE</div>', unsafe_allow_html=True)
-    st.caption(
-        "Upload an Excel file (.xlsx) formatted as follows:\n\n"
-        "- **Column A**: Researcher name (e.g. \"Jane A Doe\", \"Doe, Jane A\", or \"Doe JA\")\n"
-        "- **Columns B, C, D...**: Institution(s), one per column (optional)\n\n"
-        "A header row (e.g. \"Name\", \"Institution1\", \"Institution2\") is auto-detected and skipped. "
-        "Rows with a blank name are ignored. Institution cells that are blank, \"N/A\", or \"None\" are skipped."
+    st.markdown(
+        '<div style="font-size: 0.85rem; color: #6b7280; line-height: 1.7;">'
+        'Upload an Excel file (.xlsx) formatted as follows:'
+        '<ul style="margin-top: 0.3rem;">'
+        '<li><strong>Column A</strong>: Researcher name (e.g. "Jane A Doe", "Doe, Jane A", or "Doe JA")</li>'
+        '<li><strong>Columns B, C, D...</strong>: Institution(s), one per column (optional)</li>'
+        '</ul>'
+        'A header row (e.g. "Name", "Institution1", "Institution2") is auto-detected and skipped. '
+        'Rows with a blank name are ignored. Institution cells that are blank, "N/A", or "None" are skipped.'
+        '</div>',
+        unsafe_allow_html=True,
     )
     uploaded_file = st.file_uploader("Choose file", type=["xlsx"], key="file_uploader")
     if uploaded_file:
