@@ -560,11 +560,16 @@ st.markdown("""
     .stat-value { font-family: 'Source Serif 4', Georgia, serif; font-size: 1.8rem; font-weight: 700; color: #1a1a2e; }
     .stat-label { font-family: 'DM Sans', sans-serif; font-size: 0.8rem; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.25rem; }
     div[data-testid="stDataFrame"] { border: 1px solid #e5e7eb; border-radius: 8px; }
+    button[data-baseweb="tab"] { font-family: 'DM Sans', sans-serif !important; font-size: 1rem !important; font-weight: 500 !important; color: #6b7280 !important; padding: 0.75rem 1.25rem !important; }
+    button[data-baseweb="tab"][aria-selected="true"] { color: #1a1a2e !important; font-weight: 600 !important; }
+    button[data-baseweb="tab"]:hover { color: #1a1a2e !important; }
+    div[data-baseweb="tab-list"] { gap: 0.5rem; }
 </style>
 """, unsafe_allow_html=True)
 
 st.markdown('<div class="main-header">Researcher RCR Analyzer</div>', unsafe_allow_html=True)
 st.markdown('<div class="sub-header">Enter researcher names to retrieve their first &amp; last author publications and NIH Relative Citation Ratios.</div>', unsafe_allow_html=True)
+st.markdown('<p style="font-family: DM Sans, sans-serif; font-size: 0.88rem; color: #9ca3af; margin-top: -1.2rem; margin-bottom: 2rem; line-height: 1.5;">This site will produce a summary with each researcher&rsquo;s total number of first- and last-author publications, the sum of their RCRs, their mean RCR, and their annual sum of RCRs. It will also provide individual files listing papers and metrics for each researcher.</p>', unsafe_allow_html=True)
 
 with st.sidebar:
     st.markdown('<div class="section-label">NCBI Credentials</div>', unsafe_allow_html=True)
@@ -588,9 +593,9 @@ with tab_manual:
     st.markdown('<div class="section-label">ADD A RESEARCHER</div>', unsafe_allow_html=True)
     col_name, col_inst = st.columns([1, 2])
     with col_name:
-        new_name = st.text_input("Researcher name", placeholder="e.g. Kevin N Sheth", key="input_name")
+        new_name = st.text_input("Researcher name", placeholder="e.g. Jane A Doe", key="input_name")
     with col_inst:
-        new_institutions = st.text_input("Institution(s) — comma-separated, optional", placeholder="e.g. Yale, Weill Cornell, MGH", key="input_inst")
+        new_institutions = st.text_input("Institution(s) — comma-separated, optional", placeholder="e.g. Utopia University, Springfield Medical Center", key="input_inst")
 
     if st.button("➕ Add researcher"):
         if new_name.strip():
@@ -602,7 +607,7 @@ with tab_manual:
 
     st.markdown("")
     st.caption("**Tip:** Paste multiple researchers at once — one per line. Use a semicolon to separate name from institutions.")
-    bulk_text = st.text_area("Bulk entry (optional)", placeholder="Kevin N Sheth; Yale, Weill Cornell\nJane A Smith; Harvard\nJohn Doe", height=120, key="bulk_input")
+    bulk_text = st.text_area("Bulk entry (optional)", placeholder="Jane A Doe; Utopia University, Springfield Medical Center\nJohn Q Smith; Greenfield Institute\nMaria Garcia", height=120, key="bulk_input")
     if st.button("➕ Add all from bulk entry"):
         added = 0
         for line in bulk_text.strip().splitlines():
@@ -624,7 +629,13 @@ with tab_manual:
 
 with tab_upload:
     st.markdown('<div class="section-label">UPLOAD EXCEL FILE</div>', unsafe_allow_html=True)
-    st.caption("Excel (.xlsx) with **Column A**: Name, and optionally **Columns B, C, D...** for institution(s).")
+    st.caption(
+        "Upload an Excel file (.xlsx) formatted as follows:\n\n"
+        "- **Column A**: Researcher name (e.g. \"Jane A Doe\", \"Doe, Jane A\", or \"Doe JA\")\n"
+        "- **Columns B, C, D...**: Institution(s), one per column (optional)\n\n"
+        "A header row (e.g. \"Name\", \"Institution1\", \"Institution2\") is auto-detected and skipped. "
+        "Rows with a blank name are ignored. Institution cells that are blank, \"N/A\", or \"None\" are skipped."
+    )
     uploaded_file = st.file_uploader("Choose file", type=["xlsx"], key="file_uploader")
     if uploaded_file:
         file_researchers = read_input_excel(uploaded_file)
