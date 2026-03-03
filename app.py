@@ -546,72 +546,26 @@ def run_pipeline(researchers, email, api_key, progress_bar, status_text):
 # ---------------------------------------------------------------------------
 # Streamlit UI
 # ---------------------------------------------------------------------------
-st.set_page_config(page_title="Researcher RCR Analyzer", page_icon="📊", layout="wide")
 
-# Custom CSS
+st.set_page_config(page_title="Researcher RCR Analyzer", page_icon="\U0001f4ca", layout="wide")
+
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;600;700&family=DM+Sans:wght@400;500;600&display=swap');
-
-    .stApp {
-        background-color: #f8f7f4;
-    }
-    .main-header {
-        font-family: 'Source Serif 4', Georgia, serif;
-        font-size: 2.4rem;
-        font-weight: 700;
-        color: #1a1a2e;
-        margin-bottom: 0.2rem;
-        letter-spacing: -0.02em;
-    }
-    .sub-header {
-        font-family: 'DM Sans', sans-serif;
-        font-size: 1.05rem;
-        color: #6b7280;
-        margin-bottom: 2rem;
-        font-weight: 400;
-    }
-    .section-label {
-        font-family: 'DM Sans', sans-serif;
-        font-size: 0.75rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: #9ca3af;
-        margin-bottom: 0.5rem;
-    }
-    .stat-card {
-        background: white;
-        border: 1px solid #e5e7eb;
-        border-radius: 12px;
-        padding: 1.25rem 1.5rem;
-        text-align: center;
-    }
-    .stat-value {
-        font-family: 'Source Serif 4', Georgia, serif;
-        font-size: 1.8rem;
-        font-weight: 700;
-        color: #1a1a2e;
-    }
-    .stat-label {
-        font-family: 'DM Sans', sans-serif;
-        font-size: 0.8rem;
-        color: #9ca3af;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        margin-top: 0.25rem;
-    }
-    div[data-testid="stDataFrame"] {
-        border: 1px solid #e5e7eb;
-        border-radius: 8px;
-    }
+    .stApp { background-color: #f8f7f4; }
+    .main-header { font-family: 'Source Serif 4', Georgia, serif; font-size: 2.4rem; font-weight: 700; color: #1a1a2e; margin-bottom: 0.2rem; letter-spacing: -0.02em; }
+    .sub-header { font-family: 'DM Sans', sans-serif; font-size: 1.05rem; color: #6b7280; margin-bottom: 2rem; font-weight: 400; }
+    .section-label { font-family: 'DM Sans', sans-serif; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #9ca3af; margin-bottom: 0.5rem; }
+    .stat-card { background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 1.25rem 1.5rem; text-align: center; }
+    .stat-value { font-family: 'Source Serif 4', Georgia, serif; font-size: 1.8rem; font-weight: 700; color: #1a1a2e; }
+    .stat-label { font-family: 'DM Sans', sans-serif; font-size: 0.8rem; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.25rem; }
+    div[data-testid="stDataFrame"] { border: 1px solid #e5e7eb; border-radius: 8px; }
 </style>
 """, unsafe_allow_html=True)
 
 st.markdown('<div class="main-header">Researcher RCR Analyzer</div>', unsafe_allow_html=True)
-st.markdown('<div class="sub-header">Upload a list of researchers to retrieve their first &amp; last author publications and NIH Relative Citation Ratios.</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-header">Enter researcher names to retrieve their first &amp; last author publications and NIH Relative Citation Ratios.</div>', unsafe_allow_html=True)
 
-# --- Sidebar: credentials ---
 with st.sidebar:
     st.markdown('<div class="section-label">NCBI Credentials</div>', unsafe_allow_html=True)
     st.caption("Required by NCBI for E-utilities access. Your credentials are not stored.")
@@ -621,122 +575,131 @@ with st.sidebar:
         st.success("API key provided — requests at 10/sec")
     else:
         st.info("No API key — requests limited to 3/sec")
-
     st.markdown("---")
     st.markdown('<div class="section-label">How to get an API key</div>', unsafe_allow_html=True)
-    st.caption(
-        "1. Sign in at [ncbi.nlm.nih.gov](https://www.ncbi.nlm.nih.gov/myncbi/)\n"
-        "2. Go to Account Settings\n"
-        "3. Scroll to API Key Management\n"
-        "4. Click Create API Key"
-    )
+    st.caption("1. Sign in at [ncbi.nlm.nih.gov](https://www.ncbi.nlm.nih.gov/myncbi/)\n2. Go to Account Settings\n3. Scroll to API Key Management\n4. Click Create API Key")
 
-    st.markdown("---")
-    st.markdown('<div class="section-label">Input file format</div>', unsafe_allow_html=True)
-    st.caption(
-        "Excel file (.xlsx) with:\n"
-        "- **Column A**: Researcher name\n"
-        "- **Column B, C, D...**: Institution(s) (optional)\n\n"
-        "A header row is auto-detected and skipped."
-    )
+if "researchers" not in st.session_state:
+    st.session_state.researchers = []
 
-# --- Main area ---
-uploaded_file = st.file_uploader("Upload researcher list (.xlsx)", type=["xlsx"])
+tab_manual, tab_upload = st.tabs(["Enter manually", "Upload Excel file"])
 
-if uploaded_file and not email:
-    st.warning("Please enter your email address in the sidebar before running.")
+with tab_manual:
+    st.markdown('<div class="section-label">ADD A RESEARCHER</div>', unsafe_allow_html=True)
+    col_name, col_inst = st.columns([1, 2])
+    with col_name:
+        new_name = st.text_input("Researcher name", placeholder="e.g. Kevin N Sheth", key="input_name")
+    with col_inst:
+        new_institutions = st.text_input("Institution(s) — comma-separated, optional", placeholder="e.g. Yale, Weill Cornell, MGH", key="input_inst")
 
-if uploaded_file and email:
-    researchers = read_input_excel(uploaded_file)
+    if st.button("➕ Add researcher"):
+        if new_name.strip():
+            insts = [i.strip() for i in new_institutions.split(",") if i.strip()] if new_institutions else []
+            st.session_state.researchers.append((new_name.strip(), insts))
+            st.rerun()
+        else:
+            st.warning("Please enter a name.")
 
-    if not researchers:
-        st.error("No researchers found in the uploaded file. Check the format and try again.")
-    else:
-        st.markdown(f'<div class="section-label">FOUND {len(researchers)} RESEARCHER(S)</div>', unsafe_allow_html=True)
-
-        # Preview
-        preview_data = []
-        for name, insts in researchers:
-            preview_data.append({"Name": name, "Institution(s)": "; ".join(insts) if insts else "—"})
-        st.dataframe(preview_data, use_container_width=True, hide_index=True)
-
-        if st.button("Run Analysis", type="primary", use_container_width=True):
-            st.markdown("---")
-            progress_bar = st.progress(0)
-            status_text = st.empty()
-
-            summary_rows, individual_files = run_pipeline(
-                researchers, email, api_key.strip() if api_key else None,
-                progress_bar, status_text,
-            )
-
-            status_text.text("Done!")
-
-            if summary_rows:
-                # --- Summary display ---
-                st.markdown("---")
-                st.markdown('<div class="main-header" style="font-size:1.6rem;">Results</div>', unsafe_allow_html=True)
-
-                # Stat cards
-                total_papers = sum(r["total_papers"] for r in summary_rows)
-                avg_rcr = sum(r["rcr_mean"] for r in summary_rows) / len(summary_rows) if summary_rows else 0
-                total_rcr = sum(r["rcr_sum"] for r in summary_rows)
-
-                c1, c2, c3, c4 = st.columns(4)
-                with c1:
-                    st.markdown(f'<div class="stat-card"><div class="stat-value">{len(summary_rows)}</div><div class="stat-label">Researchers</div></div>', unsafe_allow_html=True)
-                with c2:
-                    st.markdown(f'<div class="stat-card"><div class="stat-value">{total_papers}</div><div class="stat-label">Total Papers</div></div>', unsafe_allow_html=True)
-                with c3:
-                    st.markdown(f'<div class="stat-card"><div class="stat-value">{total_rcr:.1f}</div><div class="stat-label">Combined RCR</div></div>', unsafe_allow_html=True)
-                with c4:
-                    st.markdown(f'<div class="stat-card"><div class="stat-value">{avg_rcr:.2f}</div><div class="stat-label">Avg Mean RCR</div></div>', unsafe_allow_html=True)
-
-                st.markdown("")
-
-                # Summary table
-                st.markdown('<div class="section-label">SUMMARY TABLE</div>', unsafe_allow_html=True)
-                display_rows = []
-                for r in sorted(summary_rows, key=lambda x: x["rcr_sum"], reverse=True):
-                    display_rows.append({
-                        "Researcher": r["name"],
-                        "Institution": r["institution"],
-                        "Papers": r["total_papers"],
-                        "RCR Sum": r["rcr_sum"],
-                        "Mean RCR": r["rcr_mean"],
-                        "Annual RCR": r["rcr_annual"],
-                        "First Year": r["year_first"],
-                        "Last Year": r["year_last"],
-                    })
-                st.dataframe(display_rows, use_container_width=True, hide_index=True)
-
-                # --- Downloads ---
-                st.markdown("---")
-                st.markdown('<div class="section-label">DOWNLOADS</div>', unsafe_allow_html=True)
-
-                # Summary xlsx
-                summary_buf = write_summary_xlsx(summary_rows)
-                st.download_button(
-                    label="📥 Download Summary Spreadsheet",
-                    data=summary_buf,
-                    file_name="RCR_Summary_All_Researchers.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                )
-
-                # Individual files
-                if individual_files:
-                    st.markdown("")
-                    st.markdown('<div class="section-label">INDIVIDUAL RESEARCHER REPORTS</div>', unsafe_allow_html=True)
-                    cols = st.columns(min(len(individual_files), 3))
-                    for i, (filename, buf) in enumerate(individual_files):
-                        with cols[i % 3]:
-                            display_name = filename.replace("_RCR_Report.xlsx", "").replace("_", " ")
-                            st.download_button(
-                                label=f"📄 {display_name}",
-                                data=buf,
-                                file_name=filename,
-                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                                key=f"dl_{i}",
-                            )
+    st.markdown("")
+    st.caption("**Tip:** Paste multiple researchers at once — one per line. Use a semicolon to separate name from institutions.")
+    bulk_text = st.text_area("Bulk entry (optional)", placeholder="Kevin N Sheth; Yale, Weill Cornell\nJane A Smith; Harvard\nJohn Doe", height=120, key="bulk_input")
+    if st.button("➕ Add all from bulk entry"):
+        added = 0
+        for line in bulk_text.strip().splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            if ";" in line:
+                parts = line.split(";", 1)
+                name = parts[0].strip()
+                insts = [i.strip() for i in parts[1].split(",") if i.strip()]
             else:
-                st.warning("No results were generated. Check that the names and institutions are correct.")
+                name = line
+                insts = []
+            if name:
+                st.session_state.researchers.append((name, insts))
+                added += 1
+        if added:
+            st.rerun()
+
+with tab_upload:
+    st.markdown('<div class="section-label">UPLOAD EXCEL FILE</div>', unsafe_allow_html=True)
+    st.caption("Excel (.xlsx) with **Column A**: Name, and optionally **Columns B, C, D...** for institution(s).")
+    uploaded_file = st.file_uploader("Choose file", type=["xlsx"], key="file_uploader")
+    if uploaded_file:
+        file_researchers = read_input_excel(uploaded_file)
+        if file_researchers:
+            if st.button(f"➕ Load {len(file_researchers)} researcher(s) from file"):
+                st.session_state.researchers.extend(file_researchers)
+                st.rerun()
+        else:
+            st.error("No researchers found in the file.")
+
+researchers = st.session_state.researchers
+
+if researchers:
+    st.markdown("---")
+    st.markdown(f'<div class="section-label">RESEARCHER LIST — {len(researchers)} TOTAL</div>', unsafe_allow_html=True)
+
+    preview_data = []
+    for i, (name, insts) in enumerate(researchers):
+        preview_data.append({"#": i + 1, "Name": name, "Institution(s)": ", ".join(insts) if insts else "—"})
+    st.dataframe(preview_data, use_container_width=True, hide_index=True)
+
+    col_clear, col_run = st.columns([1, 3])
+    with col_clear:
+        if st.button("🗑️ Clear list", use_container_width=True):
+            st.session_state.researchers = []
+            st.rerun()
+    with col_run:
+        run_disabled = not email
+        if not email:
+            st.warning("Enter your email in the sidebar to run.")
+        run_clicked = st.button("🚀 Run Analysis", type="primary", use_container_width=True, disabled=run_disabled)
+
+    if run_clicked and email:
+        st.markdown("---")
+        progress_bar = st.progress(0)
+        status_text = st.empty()
+        summary_rows, individual_files = run_pipeline(researchers, email, api_key.strip() if api_key else None, progress_bar, status_text)
+        status_text.text("Done!")
+
+        if summary_rows:
+            st.markdown("---")
+            st.markdown('<div class="main-header" style="font-size:1.6rem;">Results</div>', unsafe_allow_html=True)
+            total_papers = sum(r["total_papers"] for r in summary_rows)
+            avg_rcr = sum(r["rcr_mean"] for r in summary_rows) / len(summary_rows) if summary_rows else 0
+            total_rcr = sum(r["rcr_sum"] for r in summary_rows)
+
+            c1, c2, c3, c4 = st.columns(4)
+            with c1:
+                st.markdown(f'<div class="stat-card"><div class="stat-value">{len(summary_rows)}</div><div class="stat-label">Researchers</div></div>', unsafe_allow_html=True)
+            with c2:
+                st.markdown(f'<div class="stat-card"><div class="stat-value">{total_papers}</div><div class="stat-label">Total Papers</div></div>', unsafe_allow_html=True)
+            with c3:
+                st.markdown(f'<div class="stat-card"><div class="stat-value">{total_rcr:.1f}</div><div class="stat-label">Combined RCR</div></div>', unsafe_allow_html=True)
+            with c4:
+                st.markdown(f'<div class="stat-card"><div class="stat-value">{avg_rcr:.2f}</div><div class="stat-label">Avg Mean RCR</div></div>', unsafe_allow_html=True)
+
+            st.markdown("")
+            st.markdown('<div class="section-label">SUMMARY TABLE</div>', unsafe_allow_html=True)
+            display_rows = []
+            for r in sorted(summary_rows, key=lambda x: x["rcr_sum"], reverse=True):
+                display_rows.append({"Researcher": r["name"], "Institution": r["institution"], "Papers": r["total_papers"], "RCR Sum": r["rcr_sum"], "Mean RCR": r["rcr_mean"], "Annual RCR": r["rcr_annual"], "First Year": r["year_first"], "Last Year": r["year_last"]})
+            st.dataframe(display_rows, use_container_width=True, hide_index=True)
+
+            st.markdown("---")
+            st.markdown('<div class="section-label">DOWNLOADS</div>', unsafe_allow_html=True)
+            summary_buf = write_summary_xlsx(summary_rows)
+            st.download_button(label="📥 Download Summary Spreadsheet", data=summary_buf, file_name="RCR_Summary_All_Researchers.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+            if individual_files:
+                st.markdown("")
+                st.markdown('<div class="section-label">INDIVIDUAL RESEARCHER REPORTS</div>', unsafe_allow_html=True)
+                cols = st.columns(min(len(individual_files), 3))
+                for i, (filename, buf) in enumerate(individual_files):
+                    with cols[i % 3]:
+                        display_name = filename.replace("_RCR_Report.xlsx", "").replace("_", " ")
+                        st.download_button(label=f"📄 {display_name}", data=buf, file_name=filename, mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", key=f"dl_{i}")
+        else:
+            st.warning("No results were generated. Check that the names and institutions are correct.")
