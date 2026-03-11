@@ -63,45 +63,11 @@ def build_author_query(name_str, institutions):
     parsed = parse_name(name_str)
     last = parsed["last"]
     first = parsed["first"]
-    initials = parsed["initials"]
 
-    variants = set()
-    if initials:
-        variants.add(f"{last} {initials[0]}")
-    if initials and len(initials) > 1:
-        variants.add(f"{last} {initials}")
     if first:
-        variants.add(f"{first} {last}")
-
-    first_tokens = []
-    raw = name_str.strip()
-    if "," in raw:
-        first_part = raw.split(",", 1)[1].strip()
-        first_tokens = first_part.split()
+        author_query = f'"{first} {last}"'
     else:
-        tokens = raw.split()
-        if len(tokens) > 1:
-            if len(tokens[-1]) <= 3 and tokens[-1].isalpha() and tokens[-1].isupper() and len(tokens) == 2:
-                first_tokens = []
-            else:
-                first_tokens = tokens[:-1]
-
-    if first_tokens and len(first_tokens) > 1:
-        full_first = " ".join(first_tokens)
-        variants.add(f"{full_first} {last}")
-        mixed = first_tokens[0] + " " + " ".join(t[0] for t in first_tokens[1:])
-        variants.add(f"{mixed} {last}")
-
-    if first:
-        variants.add(f"{last} {first}")
-    if first_tokens and len(first_tokens) > 1:
-        variants.add(f"{last} {' '.join(first_tokens)}")
-
-    if not variants:
-        variants.add(last)
-
-    author_terms = [f'"{v}"' for v in sorted(variants)]
-    author_query = "(" + " OR ".join(author_terms) + ")"
+        author_query = f'"{last}"'
 
     if institutions:
         affil_terms = [f"{inst}[Affiliation]" for inst in institutions]
@@ -680,43 +646,47 @@ if researchers:
         status_text = st.empty()
         summary_rows, individual_files = run_pipeline(researchers, email, api_key.strip() if api_key else None, progress_bar, status_text)
         status_text.text("Done!")
+        st.session_state.summary_rows = summary_rows
+        st.session_state.individual_files = individual_files
 
-        if summary_rows:
-            st.markdown("---")
-            st.markdown('<div class="main-header" style="font-size:1.6rem;">Results</div>', unsafe_allow_html=True)
-            total_papers = sum(r["total_papers"] for r in summary_rows)
-            avg_rcr = sum(r["rcr_mean"] for r in summary_rows) / len(summary_rows) if summary_rows else 0
-            total_rcr = sum(r["rcr_sum"] for r in summary_rows)
+    # Display results from session state so they persist across reruns
+    summary_rows = st.session_state.get("summary_rows", [])
+    individual_files = st.session_state.get("individual_files", [])
 
-            c1, c2, c3, c4 = st.columns(4)
-            with c1:
-                st.markdown(f'<div class="stat-card"><div class="stat-value">{len(summary_rows)}</div><div class="stat-label">Researchers</div></div>', unsafe_allow_html=True)
-            with c2:
-                st.markdown(f'<div class="stat-card"><div class="stat-value">{total_papers}</div><div class="stat-label">Total Papers</div></div>', unsafe_allow_html=True)
-            with c3:
-                st.markdown(f'<div class="stat-card"><div class="stat-value">{total_rcr:.1f}</div><div class="stat-label">Combined RCR</div></div>', unsafe_allow_html=True)
-            with c4:
-                st.markdown(f'<div class="stat-card"><div class="stat-value">{avg_rcr:.2f}</div><div class="stat-label">Avg Mean RCR</div></div>', unsafe_allow_html=True)
+    if summary_rows:
+        st.markdown("---")
+        st.markdown('<div class="main-header" style="font-size:1.6rem;">Results</div>', unsafe_allow_html=True)
+        total_papers = sum(r["total_papers"] for r in summary_rows)
+        avg_rcr = sum(r["rcr_mean"] for r in summary_rows) / len(summary_rows) if summary_rows else 0
+        total_rcr = sum(r["rcr_sum"] for r in summary_rows)
 
+        c1, c2, c3, c4 = st.columns(4)
+        with c1:
+            st.markdown(f'<div class="stat-card"><div class="stat-value">{len(summary_rows)}</div><div class="stat-label">Researchers</div></div>', unsafe_allow_html=True)
+        with c2:
+            st.markdown(f'<div class="stat-card"><div class="stat-value">{total_papers}</div><div class="stat-label">Total Papers</div></div>', unsafe_allow_html=True)
+        with c3:
+            st.markdown(f'<div class="stat-card"><div class="stat-value">{total_rcr:.1f}</div><div class="stat-label">Combined RCR</div></div>', unsafe_allow_html=True)
+        with c4:
+            st.markdown(f'<div class="stat-card"><div class="stat-value">{avg_rcr:.2f}</div><div class="stat-label">Avg Mean RCR</div></div>', unsafe_allow_html=True)
+
+        st.markdown("")
+        st.markdown('<div class="section-label">SUMMARY TABLE</div>', unsafe_allow_html=True)
+        display_rows = []
+        for r in sorted(summary_rows, key=lambda x: x["rcr_sum"], reverse=True):
+            display_rows.append({"Researcher": r["name"], "Institution": r["institution"], "Papers": r["total_papers"], "RCR Sum": r["rcr_sum"], "Mean RCR": r["rcr_mean"], "Annual RCR": r["rcr_annual"], "First Year": r["year_first"], "Last Year": r["year_last"]})
+        st.dataframe(display_rows, use_container_width=True, hide_index=True)
+
+        st.markdown("---")
+        st.markdown('<div class="section-label">DOWNLOADS</div>', unsafe_allow_html=True)
+        summary_buf = write_summary_xlsx(summary_rows)
+        st.download_button(label="📥 Download Summary Spreadsheet", data=summary_buf, file_name="RCR_Summary_All_Researchers.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+        if individual_files:
             st.markdown("")
-            st.markdown('<div class="section-label">SUMMARY TABLE</div>', unsafe_allow_html=True)
-            display_rows = []
-            for r in sorted(summary_rows, key=lambda x: x["rcr_sum"], reverse=True):
-                display_rows.append({"Researcher": r["name"], "Institution": r["institution"], "Papers": r["total_papers"], "RCR Sum": r["rcr_sum"], "Mean RCR": r["rcr_mean"], "Annual RCR": r["rcr_annual"], "First Year": r["year_first"], "Last Year": r["year_last"]})
-            st.dataframe(display_rows, use_container_width=True, hide_index=True)
-
-            st.markdown("---")
-            st.markdown('<div class="section-label">DOWNLOADS</div>', unsafe_allow_html=True)
-            summary_buf = write_summary_xlsx(summary_rows)
-            st.download_button(label="📥 Download Summary Spreadsheet", data=summary_buf, file_name="RCR_Summary_All_Researchers.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-
-            if individual_files:
-                st.markdown("")
-                st.markdown('<div class="section-label">INDIVIDUAL RESEARCHER REPORTS</div>', unsafe_allow_html=True)
-                cols = st.columns(min(len(individual_files), 3))
-                for i, (filename, buf) in enumerate(individual_files):
-                    with cols[i % 3]:
-                        display_name = filename.replace("_RCR_Report.xlsx", "").replace("_", " ")
-                        st.download_button(label=f"📄 {display_name}", data=buf, file_name=filename, mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", key=f"dl_{i}")
-        else:
-            st.warning("No results were generated. Check that the names and institutions are correct.")
+            st.markdown('<div class="section-label">INDIVIDUAL RESEARCHER REPORTS</div>', unsafe_allow_html=True)
+            cols = st.columns(min(len(individual_files), 3))
+            for i, (filename, buf) in enumerate(individual_files):
+                with cols[i % 3]:
+                    display_name = filename.replace("_RCR_Report.xlsx", "").replace("_", " ")
+                    st.download_button(label=f"📄 {display_name}", data=buf, file_name=filename, mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", key=f"dl_{i}")
