@@ -65,9 +65,9 @@ def build_author_query(name_str, institutions):
     first = parsed["first"]
 
     if first:
-        author_query = f'"{first} {last}"'
+        author_query = f'"{last} {first}"[Author]'
     else:
-        author_query = f'"{last}"'
+        author_query = f'"{last}"[Author]'
 
     if institutions:
         affil_terms = [f"{inst}[Affiliation]" for inst in institutions]
@@ -560,7 +560,7 @@ with tab_manual:
     st.markdown('<div class="section-label">ADD A RESEARCHER</div>', unsafe_allow_html=True)
     col_name, col_inst = st.columns([1, 2])
     with col_name:
-        new_name = st.text_input("Researcher name", placeholder="e.g. Jane A Doe", key="input_name")
+        new_name = st.text_input("Researcher name", placeholder="e.g. Jane Doe or Doe, Jane", key="input_name")
     with col_inst:
         new_institutions = st.text_input("Institution(s) — comma-separated, optional", placeholder="e.g. Utopia University, Springfield Medical Center", key="input_inst")
 
