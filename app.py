@@ -65,9 +65,9 @@ def build_author_query(name_str, institutions):
     first = parsed["first"]
 
     if first:
-        author_query = f'"{last} {first}"[Author]'
+        author_query = f'{last} {first}[Author]'
     else:
-        author_query = f'"{last}"[Author]'
+        author_query = f'{last}[Author]'
 
     if institutions:
         affil_terms = [f"{inst}[Affiliation]" for inst in institutions]
